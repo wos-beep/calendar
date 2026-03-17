@@ -3,25 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ホワサバ・イベント登録ツール v1.1.1</title>
+    <title>ホワサバ・イベント登録ツール v1.1.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #121212; color: #e0e0e0; }
         input, select { background-color: #1e1e1e !important; border-color: #333 !important; color: white !important; }
         option { background-color: #1e1e1e; }
         .bg-gray-750 { background-color: #1a1a1a; }
+        .hidden { display: none; }
     </style>
 </head>
 <body class="p-4 md:p-8">
     <header class="mb-8 border-b border-gray-700 pb-4 flex justify-between items-center">
         <h1 class="text-xl font-bold text-blue-400">ホワサバ・イベント登録ツール</h1>
         <div id="version-display" class="text-xs text-gray-500 font-mono">
-            HTML v1.1.1 / script.js v1.1.1
+            HTML v1.1.2 / script.js v1.1.2
         </div>
     </header>
 
     <main class="max-w-4xl mx-auto space-y-8">
-        <section id="form-section" class="bg-gray-800 p-6 rounded-lg shadow-lg border-l-4 border-blue-600">
+        <section id="form-section" class="bg-gray-800 p-6 rounded-lg shadow-lg border-l-4 border-blue-600 transition-colors duration-300">
             <h2 id="form-title" class="text-lg font-semibold mb-4 text-gray-200">新規イベントの登録 (UTC基準)</h2>
             <form id="event-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="md:col-span-2">
@@ -40,13 +41,18 @@
                             <option value="weekly">週単位</option>
                         </select>
                     </div>
-                    <div>
-                        <label class="block text-sm mb-1 text-gray-400">間隔 (週)</label>
-                        <select id="event-interval" class="w-full p-2 rounded border cursor-pointer">
-                            <option value="1">毎週</option>
-                            <option value="2">2週おき</option>
-                            <option value="4">4週おき</option>
-                        </select>
+                    <div id="interval-container" class="transition-opacity duration-300">
+                        <label class="block text-sm mb-1 text-gray-400">繰り返しの間隔</label>
+                        <div class="flex space-x-2">
+                            <select id="event-interval-select" class="flex-1 p-2 rounded border cursor-pointer">
+                                <option value="1">毎週</option>
+                                <option value="2">2週おき</option>
+                                <option value="4">4週おき</option>
+                                <option value="custom">カスタム</option>
+                            </select>
+                            <input type="number" id="event-interval-custom" min="1" max="52" value="1" 
+                                   class="hidden w-20 p-2 rounded border outline-none text-center" title="週数を指定">
+                        </div>
                     </div>
                 </div>
                 <div>
@@ -66,8 +72,8 @@
         </section>
 
         <section class="bg-gray-800 p-6 rounded-lg shadow-lg">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg font-semibold text-gray-200">蓄積データ一覧</h2>
+            <div class="flex justify-between items-center mb-4 text-gray-200">
+                <h2 class="text-lg font-semibold">蓄積データ一覧</h2>
                 <div class="flex space-x-2">
                     <button id="export-btn" class="text-xs bg-green-700 hover:bg-green-800 py-1.5 px-3 rounded text-white transition">JSON出力</button>
                     <button id="import-btn" class="text-xs bg-purple-700 hover:bg-purple-800 py-1.5 px-3 rounded text-white transition">JSON読込</button>
