@@ -67,9 +67,11 @@ class DataManager {
     }
 }
 
+// constructor と init を修正
 class App {
     constructor(manager) {
         this.manager = manager;
+        this.editingId = null; // 編集中のIDを保持
         this.init();
     }
 
@@ -98,36 +100,79 @@ class App {
     }
 
     handleSave() {
-        const name = document.getElementById('event-name').value;
-        const category = document.getElementById('event-type').value;
-        const start = document.getElementById('event-start').value;
-        const end = document.getElementById('event-end').value;
-        const freq = document.getElementById('event-freq').value;
-        const interval = parseInt(document.getElementById('event-interval').value);
+        const fields = {
+            name: document.getElementById('event-name').value,
+            category: document.getElementById('event-type').value,
+            start: document.getElementById('event-start').value,
+            end: document.getElementById('event-end').value,
+            freq: document.getElementById('event-freq').value,
+            interval: parseInt(document.getElementById('event-interval').value)
+        };
 
-        const startDate = new Date(start);
-        const endDate = new Date(end);
-
-        if (startDate >= endDate) {
+        if (new Date(fields.start) >= new Date(fields.end)) {
             alert("エラー: 終了日時は開始日時より後に設定してください。");
             return;
         }
 
-        this.manager.addEvent({
-            name,
-            category,
-            start,
-            end,
-            occurrence: {
-                frequency_type: freq,
-                interval: interval,
-                start_day: startDate.getUTCDay(),
-                duration_hours: Math.round((endDate - startDate) / 3600000)
-            }
-        });
+        const occurrence = {
+            frequency_type: fields.freq,
+            interval: fields.interval,
+            start_day: new Date(fields.start).getUTCDay(),
+            duration_hours: Math.round((new Date(fields.end) - new Date(fields.start)) / 3600000)
+        };
 
-        document.getElementById('event-form').reset();
+        if (this.editingId) {
+            // 【編集モード】既存データの更新
+            const index = this.manager.data.events.findIndex(e => e.id === this.editingId);
+            if (index !== -1) {
+                this.manager.data.events[index] = {
+                    ...this.manager.data.events[index],
+                    ...fields,
+                    occurrence
+                };
+                this.manager.save();
+                this.editingId = null;
+                alert("データを更新しました。");
+            }
+        } else {
+            // 【新規モード】
+            this.manager.addEvent({ ...fields, occurrence });
+        }
+
+        this.resetForm();
         this.render();
+    }
+
+    handleEdit(id) {
+        const ev = this.manager.data.events.find(e => e.id === id);
+        if (!ev) return;
+
+        this.editingId = id;
+    
+        // フォームに値を復元
+        document.getElementById('event-name').value = ev.name;
+        document.getElementById('event-type').value = ev.category;
+        document.getElementById('event-start').value = ev.start;
+        document.getElementById('event-end').value = ev.end;
+        document.getElementById('event-freq').value = ev.occurrence.frequency_type;
+        document.getElementById('event-interval').value = ev.occurrence.interval;
+
+        // ボタンの見た目を変更
+        const submitBtn = document.querySelector('#event-form button[type="submit"]');
+        submitBtn.textContent = "変更を保存（更新）";
+        submitBtn.classList.replace('bg-blue-600', 'bg-yellow-600');
+        submitBtn.classList.replace('hover:bg-blue-700', 'hover:bg-yellow-700');
+    
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    resetForm() {
+        this.editingId = null;
+        document.getElementById('event-form').reset();
+        const submitBtn = document.querySelector('#event-form button[type="submit"]');
+        submitBtn.textContent = "実績を保存";
+        submitBtn.classList.replace('bg-yellow-600', 'bg-blue-600');
+        submitBtn.classList.replace('hover:bg-yellow-700', 'hover:bg-blue-700');
     }
 
     handleImport(e) {
@@ -164,19 +209,9 @@ class App {
             const freqText = ev.occurrence.frequency_type === 'once' ? '単発' : `${ev.occurrence.interval}週毎`;
             
             tr.innerHTML = `
-                <td class="p-2 text-xs text-gray-400">
-                    ${ev.start.replace('T', ' ')}<br>
-                    ${ev.end.replace('T', ' ')}
-                </td>
-                <td class="p-2 font-medium">
-                    ${ev.name}<br>
-                    <span class="text-xs text-blue-400">#${ev.category}</span>
-                </td>
-                <td class="p-2 text-xs">
-                    <span class="px-2 py-1 rounded bg-gray-700">${freqText}</span>
-                </td>
-                <td class="p-2 text-right">
-                    <button onclick="app.handleDelete('${ev.id}')" class="text-red-400 hover:text-red-300 text-xs px-2">削除</button>
+                <td class="p-2 text-right space-x-2">
+                    <button onclick="app.handleEdit('${ev.id}')" class="text-yellow-400 hover:text-yellow-300 text-xs font-bold">編集</button>
+                    <button onclick="app.handleDelete('${ev.id}')" class="text-red-400 hover:text-red-300 text-xs">削除</button>
                 </td>
             `;
             tbody.appendChild(tr);
