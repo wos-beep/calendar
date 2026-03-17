@@ -3,45 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ホワサバ・イベント実績収集 v1.1.0</title>
+    <title>ホワサバ・イベント登録ツール v1.1.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #121212; color: #e0e0e0; }
         input, select { background-color: #1e1e1e !important; border-color: #333 !important; color: white !important; }
         option { background-color: #1e1e1e; }
+        .bg-gray-750 { background-color: #1a1a1a; }
     </style>
 </head>
 <body class="p-4 md:p-8">
     <header class="mb-8 border-b border-gray-700 pb-4 flex justify-between items-center">
-        <h1 class="text-xl font-bold text-blue-400">ホワサバ・イベント実績収集</h1>
+        <h1 class="text-xl font-bold text-blue-400">ホワサバ・イベント登録ツール</h1>
         <div id="version-display" class="text-xs text-gray-500 font-mono">
-            HTML v1.1.0 / script.js v1.1.0
+            HTML v1.1.1 / script.js v1.1.1
         </div>
     </header>
 
     <main class="max-w-4xl mx-auto space-y-8">
-        <section class="bg-gray-800 p-6 rounded-lg shadow-lg">
-            <h2 class="text-lg font-semibold mb-4 text-gray-200">イベント登録 (UTC基準)</h2>
+        <section id="form-section" class="bg-gray-800 p-6 rounded-lg shadow-lg border-l-4 border-blue-600">
+            <h2 id="form-title" class="text-lg font-semibold mb-4 text-gray-200">新規イベントの登録 (UTC基準)</h2>
             <form id="event-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="md:col-span-2">
-                    <label class="block text-sm mb-1">イベント名</label>
-                    <input type="text" id="event-name" required placeholder="例: 最強王国(SVS)" class="w-full p-2 rounded border focus:ring-2 focus:ring-blue-500">
+                    <label class="block text-sm mb-1 text-gray-400">イベント名</label>
+                    <input type="text" id="event-name" required placeholder="例: 最強王国(SVS)" class="w-full p-2 rounded border focus:ring-2 focus:ring-blue-500 outline-none">
                 </div>
                 <div>
-                    <label class="block text-sm mb-1">イベントカテゴリ</label>
+                    <label class="block text-sm mb-1 text-gray-400">カテゴリ</label>
                     <input type="text" id="event-type" placeholder="例: 戦争, 内政" class="w-full p-2 rounded border">
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <label class="block text-sm mb-1">周期タイプ</label>
-                        <select id="event-freq" class="w-full p-2 rounded border">
+                        <label class="block text-sm mb-1 text-gray-400">周期タイプ</label>
+                        <select id="event-freq" class="w-full p-2 rounded border cursor-pointer">
                             <option value="once">単発</option>
                             <option value="weekly">週単位</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm mb-1">間隔 (週)</label>
-                        <select id="event-interval" class="w-full p-2 rounded border">
+                        <label class="block text-sm mb-1 text-gray-400">間隔 (週)</label>
+                        <select id="event-interval" class="w-full p-2 rounded border cursor-pointer">
                             <option value="1">毎週</option>
                             <option value="2">2週おき</option>
                             <option value="4">4週おき</option>
@@ -49,16 +50,16 @@
                     </div>
                 </div>
                 <div>
-                    <label class="block text-sm mb-1">開始日時 (UTC)</label>
+                    <label class="block text-sm mb-1 text-gray-400">開始日時 (UTC)</label>
                     <input type="datetime-local" id="event-start" required class="w-full p-2 rounded border">
                 </div>
                 <div>
-                    <label class="block text-sm mb-1">終了日時 (UTC)</label>
+                    <label class="block text-sm mb-1 text-gray-400">終了日時 (UTC)</label>
                     <input type="datetime-local" id="event-end" required class="w-full p-2 rounded border">
                 </div>
                 <div class="md:col-span-2 mt-2">
-                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition">
-                        実績を保存
+                    <button type="submit" id="submit-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded transition-all shadow-md">
+                        この内容で登録する
                     </button>
                 </div>
             </form>
@@ -67,9 +68,9 @@
         <section class="bg-gray-800 p-6 rounded-lg shadow-lg">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-lg font-semibold text-gray-200">蓄積データ一覧</h2>
-                <div class="space-x-2">
-                    <button id="export-btn" class="text-xs bg-green-700 hover:bg-green-800 py-1 px-3 rounded text-white">JSON出力</button>
-                    <button id="import-btn" class="text-xs bg-purple-700 hover:bg-purple-800 py-1 px-3 rounded text-white">JSON読込</button>
+                <div class="flex space-x-2">
+                    <button id="export-btn" class="text-xs bg-green-700 hover:bg-green-800 py-1.5 px-3 rounded text-white transition">JSON出力</button>
+                    <button id="import-btn" class="text-xs bg-purple-700 hover:bg-purple-800 py-1.5 px-3 rounded text-white transition">JSON読込</button>
                     <input type="file" id="import-file" class="hidden" accept=".json">
                 </div>
             </div>
@@ -77,10 +78,10 @@
                 <table class="w-full text-left border-collapse text-sm">
                     <thead>
                         <tr class="border-b border-gray-700 text-gray-400">
-                            <th class="p-2">期間 (UTC)</th>
-                            <th class="p-2">イベント名</th>
-                            <th class="p-2">周期設定</th>
-                            <th class="p-2 text-right">操作</th>
+                            <th class="p-3 w-40">期間 (UTC)</th>
+                            <th class="p-3">イベント情報</th>
+                            <th class="p-3 w-24">周期</th>
+                            <th class="p-3 w-32 text-right">操作</th>
                         </tr>
                     </thead>
                     <tbody id="event-list-body"></tbody>
@@ -88,7 +89,6 @@
             </div>
         </section>
     </main>
-
     <script src="script.js"></script>
 </body>
 </html>
