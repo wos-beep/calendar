@@ -54,6 +54,8 @@ class App {
     constructor(manager) {
         this.manager = manager;
         this.editingId = null;
+        // ソート状態を管理するプロパティを追加
+        this.sortConfig = { key: 'start', direction: 'asc' }; 
         this.init();
     }
 
@@ -72,6 +74,13 @@ class App {
         document.getElementById('export-btn').addEventListener('click', () => this.handleExport());
         document.getElementById('import-btn').addEventListener('click', () => document.getElementById('import-file').click());
         document.getElementById('import-file').addEventListener('change', (e) => this.handleImport(e));
+
+        // テーブルヘッダーにクリックイベントを設定
+        const headers = document.querySelectorAll('th[data-sort]');
+        headers.forEach(th => {
+            th.style.cursor = 'pointer';
+            th.addEventListener('click', () => this.handleSort(th.dataset.sort));
+        });
 
         this.updateUIState();
         this.render();
@@ -101,6 +110,41 @@ class App {
     }
 
     // --- Actions ---
+
+    // ソート実行関数
+    handleSort(key) {
+        if (this.sortConfig.key === key) {
+            // 同じキーなら昇順/降順を反転
+            this.sortConfig.direction = this.sortConfig.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+            // 新しいキーなら昇順で開始
+            this.sortConfig.key = key;
+            this.sortConfig.direction = 'asc';
+        }
+        this.render();
+    }
+    
+    render() {
+        const tbody = document.getElementById('event-list-body');
+        tbody.innerHTML = '';
+
+        // ソートロジックの適用
+        const sorted = [...this.manager.data.events].sort((a, b) => {
+            let valA, valB;
+
+            // ソートキーに応じた値の抽出
+            switch(this.sortConfig.key) {
+                case 'start': valA = a.start; valB = b.start; break;
+                case 'name': valA = a.name; valB = b.name; break;
+                case 'category': valA = a.category; valB = b.category; break;
+                default: valA = a.start; valB = b.start;
+            }
+
+            if (valA < valB) return this.sortConfig.direction === 'asc' ? -1 : 1;
+            if (valA > valB) return this.sortConfig.direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+        }
 
     handleSave() {
         const name = document.getElementById('event-name').value;
