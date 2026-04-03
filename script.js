@@ -1,10 +1,10 @@
 /**
  * ホワサバ・イベント登録ツール
- * script.js v1.1.2
+ * script.js v1.1.3
  */
 
 const CONFIG = {
-    VERSION: "1.1.2",
+    VERSION: "1.1.3",
     STORAGE_KEY: "ws_event_collector_data"
 };
 
@@ -25,15 +25,15 @@ class DataManager {
 
     migrate() {
         if (!this.data.version) this.data.version = "1.0.0";
-        if (this.data.version.startsWith("1.0") || this.data.version === "1.1.1") {
-            console.log("Migrating data to latest structure...");
+        // 既存のマイグレーション処理を維持
+        if (this.data.version !== CONFIG.VERSION) {
             this.data.events = this.data.events.map(ev => {
                 const start = new Date(ev.start);
                 const end = new Date(ev.end);
                 return {
                     id: ev.id || crypto.randomUUID(),
-                    name: ev.name || ev.type || "名称不明",
-                    category: ev.category || ev.type || "未分類",
+                    name: ev.name || ev.category || "名称不明",
+                    category: ev.category || "未分類",
                     start: ev.start,
                     end: ev.end,
                     occurrence: ev.occurrence || {
@@ -54,39 +54,44 @@ class App {
     constructor(manager) {
         this.manager = manager;
         this.editingId = null;
-        // ソート状態を管理するプロパティを追加
-        this.sortConfig = { key: 'start', direction: 'asc' }; 
+        // ソート状態の初期化
+        this.sortConfig = { key: 'start', direction: 'asc' };
         this.init();
     }
 
     init() {
-        // Form Submission
         document.getElementById('event-form').addEventListener('submit', (e) => {
             e.preventDefault();
             this.handleSave();
         });
 
-        // UI Control Listeners
+        // フォームUIの動的制御
         document.getElementById('event-freq').addEventListener('change', () => this.updateUIState());
         document.getElementById('event-interval-select').addEventListener('change', () => this.updateUIState());
+
+        // ソートヘッダーのイベント登録
+        document.querySelectorAll('th[data-sort]').forEach(th => {
+            th.addEventListener('click', () => this.handleSort(th.dataset.sort));
+        });
 
         // JSON IO
         document.getElementById('export-btn').addEventListener('click', () => this.handleExport());
         document.getElementById('import-btn').addEventListener('click', () => document.getElementById('import-file').click());
         document.getElementById('import-file').addEventListener('change', (e) => this.handleImport(e));
 
-        // テーブルヘッダーにクリックイベントを設定
-        const headers = document.querySelectorAll('th[data-sort]');
-        headers.forEach(th => {
-            th.style.cursor = 'pointer';
-            th.addEventListener('click', () => this.handleSort(th.dataset.sort));
-        });
-
         this.updateUIState();
         this.render();
     }
 
-    // --- UI Control ---
+    handleSort(key) {
+        if (this.sortConfig.key === key) {
+            this.sortConfig.direction = this.sortConfig.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+            this.sortConfig.key = key;
+            this.sortConfig.direction = 'asc';
+        }
+        this.render();
+    }
 
     updateUIState() {
         const freq = document.getElementById('event-freq').value;
@@ -109,51 +114,12 @@ class App {
         }
     }
 
-    // --- Actions ---
-
-    // ソート実行関数
-    handleSort(key) {
-        if (this.sortConfig.key === key) {
-            // 同じキーなら昇順/降順を反転
-            this.sortConfig.direction = this.sortConfig.direction === 'asc' ? 'desc' : 'asc';
-        } else {
-            // 新しいキーなら昇順で開始
-            this.sortConfig.key = key;
-            this.sortConfig.direction = 'asc';
-        }
-        this.render();
-    }
-    
-    render() {
-        const tbody = document.getElementById('event-list-body');
-        tbody.innerHTML = '';
-
-        // ソートロジックの適用
-        const sorted = [...this.manager.data.events].sort((a, b) => {
-            let valA, valB;
-
-            // ソートキーに応じた値の抽出
-            switch(this.sortConfig.key) {
-                case 'start': valA = a.start; valB = b.start; break;
-                case 'name': valA = a.name; valB = b.name; break;
-                case 'category': valA = a.category; valB = b.category; break;
-                default: valA = a.start; valB = b.start;
-            }
-
-            if (valA < valB) return this.sortConfig.direction === 'asc' ? -1 : 1;
-            if (valA > valB) return this.sortConfig.direction === 'asc' ? 1 : -1;
-            return 0;
-        });
-        }
-
     handleSave() {
         const name = document.getElementById('event-name').value;
         const category = document.getElementById('event-type').value;
         const start = document.getElementById('event-start').value;
         const end = document.getElementById('event-end').value;
         const freq = document.getElementById('event-freq').value;
-        
-        // 数値取得のロジック
         const selectVal = document.getElementById('event-interval-select').value;
         const interval = selectVal === 'custom' 
             ? parseInt(document.getElementById('event-interval-custom').value) || 1
@@ -169,7 +135,7 @@ class App {
 
         const eventData = {
             name,
-            category,
+            category: category || "未分類",
             start,
             end,
             occurrence: {
@@ -184,7 +150,6 @@ class App {
             const index = this.manager.data.events.findIndex(e => e.id === this.editingId);
             if (index !== -1) {
                 this.manager.data.events[index] = { id: this.editingId, ...eventData };
-                alert("変更を確定しました。");
             }
         } else {
             this.manager.data.events.push({ id: crypto.randomUUID(), ...eventData });
@@ -200,14 +165,12 @@ class App {
         if (!ev) return;
 
         this.editingId = id;
-        
-        document.getElementById('event-name').value = ev.name || '';
-        document.getElementById('event-type').value = ev.category || '';
+        document.getElementById('event-name').value = ev.name;
+        document.getElementById('event-type').value = ev.category;
         document.getElementById('event-start').value = ev.start;
         document.getElementById('event-end').value = ev.end;
         document.getElementById('event-freq').value = ev.occurrence.frequency_type;
 
-        // 間隔値の復元
         const interval = ev.occurrence.interval;
         if ([1, 2, 4].includes(interval)) {
             document.getElementById('event-interval-select').value = interval;
@@ -220,7 +183,6 @@ class App {
         const submitBtn = document.getElementById('submit-btn');
         submitBtn.textContent = "変更を確定する (更新)";
         submitBtn.classList.replace('bg-blue-600', 'bg-yellow-600');
-        submitBtn.classList.replace('hover:bg-blue-700', 'hover:bg-yellow-700');
         document.getElementById('form-title').textContent = "イベント情報の編集";
         document.getElementById('form-section').classList.replace('border-blue-600', 'border-yellow-600');
 
@@ -255,8 +217,8 @@ class App {
                 this.manager.migrate();
                 this.manager.save();
                 this.render();
-                alert("インポートが完了しました。");
-            } catch (err) { alert("インポートエラー: " + err.message); }
+                alert("インポート完了");
+            } catch (err) { alert("形式エラー: " + err.message); }
         };
         reader.readAsText(file);
     }
@@ -267,7 +229,6 @@ class App {
         const submitBtn = document.getElementById('submit-btn');
         submitBtn.textContent = "この内容で登録する";
         submitBtn.classList.replace('bg-yellow-600', 'bg-blue-600');
-        submitBtn.classList.replace('hover:bg-yellow-700', 'hover:bg-blue-700');
         document.getElementById('form-title').textContent = "新規イベントの登録 (UTC基準)";
         document.getElementById('form-section').classList.replace('border-yellow-600', 'border-blue-600');
         this.updateUIState();
@@ -276,7 +237,24 @@ class App {
     render() {
         const tbody = document.getElementById('event-list-body');
         tbody.innerHTML = '';
-        const sorted = [...this.manager.data.events].sort((a, b) => new Date(a.start) - new Date(b.start));
+
+        // ソート処理
+        const sorted = [...this.manager.data.events].sort((a, b) => {
+            let valA = a[this.sortConfig.key] || "";
+            let valB = b[this.sortConfig.key] || "";
+            
+            if (this.sortConfig.key === 'start') {
+                valA = new Date(valA);
+                valB = new Date(valB);
+            } else {
+                valA = valA.toString().toLowerCase();
+                valB = valB.toString().toLowerCase();
+            }
+
+            if (valA < valB) return this.sortConfig.direction === 'asc' ? -1 : 1;
+            if (valA > valB) return this.sortConfig.direction === 'asc' ? 1 : -1;
+            return 0;
+        });
 
         sorted.forEach(ev => {
             const tr = document.createElement('tr');
